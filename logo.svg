@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Trading Lab">
+  <rect width="512" height="512" rx="104" fill="#0B283D"/>
+  <path d="M96 404 H 420" stroke="#F9F6F1" stroke-width="8" stroke-linecap="round" opacity=".35"/>
+  <g stroke-linecap="round">
+    <path d="M142 250 V 380" stroke="#C8643B" stroke-width="8"/><rect x="118" y="276" width="48" height="76" rx="8" fill="#C8643B"/>
+    <path d="M222 200 V 350" stroke="#7FA886" stroke-width="8"/><rect x="198" y="222" width="48" height="98" rx="8" fill="#7FA886"/>
+    <path d="M302 150 V 300" stroke="#7FA886" stroke-width="8"/><rect x="278" y="168" width="48" height="104" rx="8" fill="#7FA886"/>
+    <path d="M382 96 V 236" stroke="#F9F6F1" stroke-width="8"/><rect x="358" y="112" width="48" height="96" rx="8" fill="#F9F6F1"/>
+  </g>
+  <path d="M110 330 C 180 300 230 250 300 210 S 380 140 412 110" fill="none" stroke="#F9F6F1" stroke-width="6" stroke-dasharray="4 14" stroke-linecap="round" opacity=".6"/>
+  <g transform="translate(420 440) rotate(-90) scale(.42)"><path d="M0 0 C 24 -25, 64 -27, 100 0 C 64 27, 24 25, 0 0 Z" fill="#7FA886"/></g>
+</svg>

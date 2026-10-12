@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trading Lab · Practicá trading sin arriesgar dinero</title>
+<meta name="description" content="Simulador de trading con dinero ficticio: mercado simulado, predicciones, opciones, probabilidad (Monte Carlo), retos y lecciones. Gratis y sin registro.">
+<meta name="author" content="Estudio Raíz">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Trading Lab · Practicá trading sin arriesgar dinero">
+<meta property="og:description" content="Simulador educativo de trading con dinero ficticio. Gratis y sin registro.">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem('tl_theme');
+    t = t ? JSON.parse(t) : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.dataset.theme = t;
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="3" height="8" rx="1" fill="var(--down)"/><line x1="4.5" y1="6" x2="4.5" y2="20" stroke="var(--down)" stroke-width="1.5"/><rect x="10.5" y="6" width="3" height="9" rx="1" fill="var(--up)"/><line x1="12" y1="3" x2="12" y2="18" stroke="var(--up)" stroke-width="1.5"/><rect x="18" y="4" width="3" height="7" rx="1" fill="var(--up)"/><line x1="19.5" y1="2" x2="19.5" y2="14" stroke="var(--up)" stroke-width="1.5"/></svg>
+    Trading Lab <small>práctica sin riesgo</small>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="sim" class="active">Simulador</button>
+    <button data-tab="predict">Predicción</button>
+    <button data-tab="options">Opciones</button>
+    <button data-tab="mc">Probabilidad</button>
+    <button data-tab="challenges">Retos</button>
+    <button data-tab="stats">Estadísticas</button>
+    <button data-tab="learn">Aprende</button>
+  </nav>
+  <div class="top-actions">
+    <button class="icon-btn" id="btnSettings" title="Ajustes de la cuenta">⚙</button>
+    <button class="icon-btn" id="btnTheme" title="Tema claro / oscuro">◐</button>
+  </div>
+</header>
+
+<main>
+<!-- ===================== SIMULADOR ===================== -->
+<section class="tab active" id="tab-sim">
+  <div id="chBanner" class="ch-banner hidden"></div>
+  <div class="sim-grid">
+    <div class="sim-main">
+      <div class="toolbar panel tight">
+        <label class="lbl">Escenario <select id="simScenario"></select></label>
+        <button class="btn" id="simNew">↻ Nuevo mercado</button>
+        <span class="sep"></span>
+        <label class="chip c1"><input type="checkbox" data-ov="sma20">SMA 20</label>
+        <label class="chip c2"><input type="checkbox" data-ov="sma50">SMA 50</label>
+        <label class="chip c3"><input type="checkbox" data-ov="ema100">EMA 100</label>
+        <label class="chip c4"><input type="checkbox" data-ov="bb">Bollinger</label>
+        <label class="chip c4"><input type="checkbox" data-ov="dc">Donchian 20</label>
+        <label class="lbl">Panel inferior
+          <select id="simSub"><option value="rsi">RSI 14</option><option value="macd">MACD</option><option value="vol">Volumen</option><option value="none">Ninguno</option></select>
+        </label>
+      </div>
+      <div class="chart-wrap"><canvas id="simChart"></canvas><div class="chart-hint">Rueda: zoom · Arrastrar: mover · Doble clic: volver al final</div></div>
+      <div class="playbar panel tight">
+        <button class="btn primary" id="simPlay">▶ Reproducir</button>
+        <button class="btn" data-step="1">+1 vela</button>
+        <button class="btn" data-step="10">+10</button>
+        <button class="btn" data-step="50">+50</button>
+        <label class="lbl">Velocidad <input type="range" id="simSpeed" min="1" max="10" value="5"></label>
+        <label class="lbl chk"><input type="checkbox" id="simPauseOnClose" checked> Pausar al cerrar una operación</label>
+        <span class="grow"></span>
+        <span class="muted small" id="simBarInfo"></span>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Operaciones de esta sesión</h3><span class="muted small" id="simSessStats"></span></div>
+        <div class="table-wrap"><table class="tbl" id="simTrades"></table></div>
+      </div>
+    </div>
+
+    <aside class="sim-side">
+      <div class="panel welcome" id="simWelcome">
+        <button class="x" id="simWelcomeX" title="Ocultar">✕</button>
+        <h3>¿Cómo se practica?</h3>
+        <ol>
+          <li><b>Analiza</b> el gráfico: tendencia, indicadores, soportes y resistencias.</li>
+          <li><b>Planifica</b>: en <i>Manual</i> eliges dirección, stop, objetivo y riesgo. En <i>Bot</i> creas reglas automáticas.</li>
+          <li><b>Avanza el precio</b> (▶ o +1 vela) y mira qué pasa.</li>
+          <li>Revisa tus <b>estadísticas</b> y mejora.</li>
+        </ol>
+        <p class="muted small">Atajos: <kbd>Espacio</kbd> reproducir/pausa · <kbd>→</kbd> +1 vela · <kbd>B</kbd> comprar · <kbd>V</kbd> vender · <kbd>C</kbd> cerrar</p>
+      </div>
+
+      <div class="panel">
+        <div id="acct"></div>
+        <div id="posCard"></div>
+      </div>
+
+      <div class="panel">
+        <div class="seg" id="sideTabs"><button data-st="manual" class="active">✋ Manual</button><button data-st="bot">🤖 Bot de reglas</button></div>
+
+        <div id="st-manual" class="st-pane">
+          <div class="seg two" id="ordSide"><button data-side="1" class="active">▲ Comprar (largo)</button><button data-side="-1">▼ Vender (corto)</button></div>
+          <div class="frm">
+            <label>Tamaño <i class="tip" data-tip="Riesgo %: cuánto pierdes del capital si salta el stop (lo recomendado: 0.5–2%). Monto fijo: dólares invertidos. % del capital: porción del capital invertida.">?</i></label>
+            <div class="pair">
+              <select id="ordSizeMode"><option value="risk">Riesgo % del capital</option><option value="usd">Monto fijo ($)</option><option value="pct">% del capital invertido</option></select>
+              <input type="number" id="ordSizeVal" value="1" step="0.1" min="0">
+            </div>
+            <label>Stop loss <i class="tip" data-tip="Precio donde aceptas que te equivocaste y sales con una pérdida controlada. ATR × usa la volatilidad actual (1.5–2 ATR es un buen punto de partida).">?</i></label>
+            <div class="pair">
+              <select id="ordSlMode"><option value="atr">ATR ×</option><option value="pct">% del precio</option><option value="price">Precio exacto</option><option value="none">Sin stop (peligroso)</option></select>
+              <input type="number" id="ordSlVal" value="1.5" step="0.1" min="0">
+            </div>
+            <label>Take profit <i class="tip" data-tip="Precio objetivo donde cobras la ganancia. R:R = cuántas veces tu riesgo quieres ganar (2 = ganar el doble de lo que arriesgas).">?</i></label>
+            <div class="pair">
+              <select id="ordTpMode"><option value="rr">R:R (× riesgo)</option><option value="atr">ATR ×</option><option value="pct">% del precio</option><option value="price">Precio exacto</option><option value="none">Sin objetivo</option></select>
+              <input type="number" id="ordTpVal" value="2" step="0.1" min="0">
+            </div>
+            <label class="chk"><input type="checkbox" id="ordTrail"> Trailing stop <i class="tip" data-tip="El stop persigue al precio cuando va a tu favor, manteniendo la misma distancia. Protege ganancias en tendencias.">?</i></label>
+          </div>
+          <div class="preview" id="ordPreview"></div>
+          <button class="btn big long" id="ordSubmit">▲ Abrir LARGO</button>
+        </div>
+
+        <div id="st-bot" class="st-pane hidden">
+          <label class="lbl block">Estrategia base <select id="botPreset"></select></label>
+          <div class="desc" id="botDesc"></div>
+          <div id="botRules"></div>
+          <div class="frm grid2" id="botCfg">
+            <label>Riesgo % por op. <input type="number" id="botRisk" step="0.1" min="0.1"></label>
+            <label>Stop (ATR ×) <input type="number" id="botSl" step="0.1" min="0.5"></label>
+            <label>Objetivo (ATR ×, 0 = sin) <input type="number" id="botTp" step="0.1" min="0"></label>
+            <span></span>
+            <label class="chk"><input type="checkbox" id="botTrail"> Trailing stop</label>
+            <label class="chk"><input type="checkbox" id="botReverse"> Girar con señal contraria</label>
+            <label class="chk"><input type="checkbox" id="botLong"> Permitir largos</label>
+            <label class="chk"><input type="checkbox" id="botShort"> Permitir cortos</label>
+          </div>
+          <button class="btn big primary" id="botToggle">🤖 Activar bot en el gráfico</button>
+          <div class="sub-head">Prueba la estrategia al instante</div>
+          <label class="lbl block">Escenario de prueba <select id="botTestScen"></select></label>
+          <div class="row2">
+            <button class="btn" id="botBacktest" title="Ejecuta las reglas sobre 500 velas nuevas">Backtest (500 velas)</button>
+            <button class="btn" id="botRobust" title="Ejecuta las reglas en 20 mercados distintos para ver si es suerte o ventaja real">Robustez (20 mercados)</button>
+          </div>
+          <div id="botResults"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ===================== PREDICCIÓN ===================== -->
+<section class="tab" id="tab-predict">
+  <div class="intro">
+    <h2>Modo predicción</h2>
+    <p>¿Sube o baja? Predice dónde estará el precio dentro de N velas y descubre si tu lectura del gráfico es mejor que lanzar una moneda. La estadística te dirá si tu acierto es habilidad o azar.</p>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="toolbar">
+        <label class="lbl">Escenario <select id="predScen"></select></label>
+        <label class="lbl">Horizonte
+          <select id="predH"><option value="1">1 vela</option><option value="3">3 velas</option><option value="5" selected>5 velas</option><option value="10">10 velas</option><option value="20">20 velas</option></select>
+        </label>
+        <button class="btn" id="predNew">↻ Nuevo mercado</button>
+      </div>
+      <div class="chart-wrap med"><canvas id="predChart"></canvas></div>
+      <div class="pred-actions">
+        <button class="btn big long" id="predUp">⬆ Subirá</button>
+        <button class="btn big short" id="predDown">⬇ Bajará</button>
+      </div>
+      <div class="pred-msg" id="predMsg"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Tu marcador</h3><button class="btn sm" id="predReset">Reiniciar</button></div>
+      <div id="predStats"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OPCIONES ===================== -->
+<section class="tab" id="tab-options">
+  <div class="intro">
+    <h2>Laboratorio de opciones</h2>
+    <p>Elige una estrategia, ajusta strikes y volatilidad, mira el diagrama de ganancias/pérdidas y la probabilidad de ganar. Después deja que el precio avance hasta el vencimiento.</p>
+  </div>
+  <div class="opt-grid">
+    <div class="panel">
+      <h3>1 · Configura</h3>
+      <div class="frm">
+        <label>Estrategia</label>
+        <select id="optPreset"></select>
+        <div class="desc" id="optDesc"></div>
+        <div class="grid2">
+          <label>Precio del subyacente <input type="number" id="optS" value="100" step="0.5" min="1"></label>
+          <label><span>Volatilidad implícita % <i class="tip" data-tip="Cuánto espera el mercado que se mueva el precio (anualizado). Más volatilidad = opciones más caras.">?</i></span><input type="number" id="optIV" value="30" step="1" min="1"></label>
+          <label>Días al vencimiento <input type="number" id="optDays" value="30" step="1" min="1" max="365"></label>
+          <label>Tasa de interés % <input type="number" id="optR" value="4" step="0.25"></label>
+        </div>
+        <button class="btn sm" id="optUseSim">Usar el precio actual del simulador</button>
+      </div>
+      <h3 class="mt">Patas de la estrategia <i class="tip" data-tip="Cada contrato de opción controla 100 acciones. La prima se calcula con Black-Scholes.">?</i></h3>
+      <div class="table-wrap"><table class="tbl legs" id="optLegs"></table></div>
+      <button class="btn sm" id="optAddLeg">+ Añadir pata</button>
+    </div>
+    <div class="panel">
+      <h3>2 · Analiza</h3>
+      <div class="metrics" id="optMetrics"></div>
+      <div class="plot tall"><canvas id="optPayoff"></canvas></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--text)"></i>Al vencimiento</span>
+        <span><i class="sw dash" style="border-color:var(--accent)"></i>Hoy</span>
+        <span><i class="sw dash" style="border-color:var(--warn)"></i>Precio actual</span>
+        <span><i class="sw" style="background:var(--accent);opacity:.25"></i>Rango ±1σ esperado</span>
+      </div>
+    </div>
+    <div class="panel span2">
+      <h3>3 · Avanza el precio y mira el resultado</h3>
+      <div class="toolbar">
+        <label class="lbl">Movimiento del mercado
+          <select id="optDrift"><option value="flat">Sin tendencia</option><option value="up">Alcista</option><option value="down">Bajista</option><option value="rand">Aleatorio (sorpresa)</option></select>
+        </label>
+        <label class="lbl">Volatilidad real
+          <select id="optRealVol"><option value="same">Igual a la implícita</option><option value="low">Menor (60%)</option><option value="high">Mayor (160%)</option><option value="rand">Aleatoria</option></select>
+        </label>
+        <button class="btn primary" id="optSim">▶ Simular hasta el vencimiento</button>
+        <button class="btn" id="optSimMany">Simular 2.000 veces</button>
+      </div>
+      <div class="two-col even">
+        <div><div class="plot-title">Precio del subyacente</div><div class="plot"><canvas id="optPath"></canvas></div></div>
+        <div><div class="plot-title">Ganancia / pérdida de tu posición</div><div class="plot"><canvas id="optPnl"></canvas></div></div>
+      </div>
+      <div class="result-box" id="optResult">Pulsa “Simular” para ver un posible camino del precio.</div>
+      <div id="optManyBox" class="hidden">
+        <div class="metrics" id="optManyMetrics"></div>
+        <div class="plot"><canvas id="optHist"></canvas></div>
+        <p class="muted small" id="optManyText"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PROBABILIDAD ===================== -->
+<section class="tab" id="tab-mc">
+  <div class="intro">
+    <h2>Probabilidad y Monte Carlo</h2>
+    <p>Una estrategia se define por su <b>% de acierto</b>, su <b>ratio R:R</b> y cuánto <b>arriesgas</b>. Aquí simulas miles de futuros posibles para ver el rango real de resultados, el drawdown y el riesgo de ruina.</p>
+  </div>
+  <div class="mc-grid">
+    <div class="panel">
+      <h3>Tu estrategia</h3>
+      <div class="frm">
+        <label>% de acierto <span class="val" id="mcWRv"></span></label>
+        <input type="range" id="mcWR" min="10" max="90" step="1" value="45">
+        <label>Ratio R:R (ganancia media / pérdida) <span class="val" id="mcRRv"></span></label>
+        <input type="range" id="mcRR" min="0.3" max="5" step="0.1" value="2">
+        <label>Riesgo por operación % <span class="val" id="mcRiskv"></span></label>
+        <input type="range" id="mcRisk" min="0.25" max="20" step="0.25" value="1">
+        <div class="grid2">
+          <label>Operaciones <input type="number" id="mcTrades" value="200" min="10" max="1000" step="10"></label>
+          <label>Simulaciones <input type="number" id="mcSims" value="1000" min="100" max="5000" step="100"></label>
+          <label>Ruina = caída de % <input type="number" id="mcRuin" value="50" min="5" max="95" step="5"></label>
+          <label>Tamaño
+            <select id="mcMode"><option value="comp">% del capital actual</option><option value="fixed">$ fijo (del inicial)</option></select>
+          </label>
+        </div>
+        <label class="chk"><input type="checkbox" id="mcVar" checked> Resultados variables (no todas las ganancias son iguales)</label>
+      </div>
+      <div class="row2">
+        <button class="btn primary" id="mcRun">↻ Volver a simular</button>
+        <button class="btn" id="mcFromJournal">Usar mis estadísticas</button>
+      </div>
+      <div class="formula" id="mcFormula"></div>
+    </div>
+    <div class="panel">
+      <div class="metrics" id="mcMetrics"></div>
+      <div class="plot-title">Evolución del capital (bandas de percentiles 5–95% y 25–75%)</div>
+      <div class="plot tall"><canvas id="mcFan"></canvas></div>
+      <div class="two-col even">
+        <div><div class="plot-title">Distribución del capital final</div><div class="plot"><canvas id="mcHist"></canvas></div></div>
+        <div><div class="plot-title">Distribución del drawdown máximo</div><div class="plot"><canvas id="mcDD"></canvas></div></div>
+      </div>
+      <div class="insights" id="mcInsight"></div>
+    </div>
+    <div class="panel span2">
+      <h3>Rachas perdedoras: ¿qué tan probable es una mala racha?</h3>
+      <p class="muted small">Con tu % de acierto y número de operaciones, esta es la probabilidad de sufrir <b>al menos una</b> racha de K pérdidas seguidas. Spoiler: es mucho más alta de lo que la intuición dice.</p>
+      <div id="mcStreaks" class="streaks"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RETOS ===================== -->
+<section class="tab" id="tab-challenges">
+  <div class="intro">
+    <h2>Retos</h2>
+    <p>Escenarios con objetivos y reglas concretas. Cada reto genera un mercado nuevo, así que no hay dos iguales. Supera todos para dominar distintos tipos de mercado.</p>
+  </div>
+  <div class="ch-summary" id="chSummary"></div>
+  <div class="ch-grid" id="chGrid"></div>
+</section>
+
+<!-- ===================== ESTADÍSTICAS ===================== -->
+<section class="tab" id="tab-stats">
+  <div class="intro">
+    <h2>Estadísticas y diario de operaciones</h2>
+    <p>Todas tus operaciones (manuales, del bot y de los retos) quedan registradas en este navegador.</p>
+  </div>
+  <div class="toolbar panel tight">
+    <label class="lbl">Mostrar
+      <select id="stFilter"><option value="all">Todas</option><option value="manual">Solo manuales</option><option value="bot">Solo bot</option><option value="reto">Solo retos</option></select>
+    </label>
+    <span class="grow"></span>
+    <button class="btn" id="stExport">Exportar CSV</button>
+    <button class="btn danger-o" id="stClear">Borrar historial</button>
+  </div>
+  <div class="panel"><div class="metrics" id="stMetrics"></div></div>
+  <div class="two-col even">
+    <div class="panel"><h3>Curva de capital</h3><div class="plot"><canvas id="stCurve"></canvas></div></div>
+    <div class="panel"><h3>Distribución de resultados (en R)</h3><div class="plot"><canvas id="stHist"></canvas></div></div>
+  </div>
+  <div class="two-col even">
+    <div class="panel"><h3>Diagnóstico</h3><div class="insights" id="stInsights"></div></div>
+    <div class="panel"><h3>Por escenario</h3><div class="table-wrap"><table class="tbl" id="stByScen"></table></div></div>
+  </div>
+  <div class="panel"><h3>Diario</h3><div class="table-wrap tall"><table class="tbl" id="stTable"></table></div></div>
+</section>
+
+<!-- ===================== APRENDE ===================== -->
+<section class="tab" id="tab-learn">
+  <div class="intro">
+    <h2>Aprende</h2>
+    <p>Conceptos explicados de forma sencilla. Cada tema tiene un enlace para practicarlo.</p>
+  </div>
+  <input type="search" id="learnSearch" class="search" placeholder="Buscar: RSI, stop loss, Kelly, iron condor…">
+  <div id="learnList"></div>
+</section>
+</main>
+
+<div id="toasts"></div>
+
+<dialog id="dlgSettings">
+  <form method="dialog" class="dlg">
+    <h3>Ajustes de la cuenta simulada</h3>
+    <label>Capital inicial (USD) <input type="number" id="setCap" min="100" step="100"></label>
+    <label>Comisión por operación (% del valor) <input type="number" id="setFee" min="0" step="0.01"></label>
+    <label>Apalancamiento máximo (×) <input type="number" id="setLev" min="1" max="100" step="1"></label>
+    <p class="muted small">Los cambios se aplican al crear un nuevo mercado.</p>
+    <div class="row-end"><button value="cancel" class="btn">Cancelar</button><button value="ok" class="btn primary">Guardar</button></div>
+  </form>
+</dialog>
+
+<script src="js/core.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/challenges.js"></script>
+<script src="js/predict.js"></script>
+<script src="js/options.js"></script>
+<script src="js/montecarlo.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/learn.js"></script>
+<script src="js/app.js"></script>
+
+<!-- ER-CREDIT:START · Pie de Estudio Raíz (no editar a mano: se regenera igual en todos los proyectos) -->
+<style>
+.er-credit{all:initial;display:block;box-sizing:border-box;width:100%;margin:0;padding:18px 16px 22px;background:#0B283D;color:#DCE3E8;font:400 13px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;position:relative;z-index:1}
+.er-credit *{box-sizing:border-box}
+.er-credit a{color:#F9F6F1;text-decoration:none}
+.er-credit a:hover,.er-credit a:focus-visible{text-decoration:underline;text-underline-offset:2px}
+.er-credit__brand{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.er-credit__brand img{width:30px;height:30px;border-radius:7px;display:block}
+.er-credit__brand strong{font-weight:600;letter-spacing:.2px}
+.er-credit__links{margin:8px 0 0;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px}
+.er-credit__legal{margin:8px 0 0;font-size:11.5px;color:#9FB0BC}
+</style>
+<footer class="er-credit" aria-label="Créditos">
+  <a class="er-credit__brand" href="https://estudio-raiz.vercel.app" target="_blank" rel="noopener">
+    <img src="estudio-raiz.svg" alt="" width="30" height="30">
+    <span>Desarrollado por <strong>Estudio Raíz</strong></span>
+  </a>
+  <p class="er-credit__links">
+    <a href="https://wa.me/5492216823580" target="_blank" rel="noopener">WhatsApp</a>
+    <a href="mailto:daniel.franco.dib@gmail.com">Email</a>
+    <a href="https://estudio-raiz.vercel.app/privacidad" target="_blank" rel="noopener">Privacidad</a>
+    <a href="https://estudio-raiz.vercel.app/terminos" target="_blank" rel="noopener">Términos</a>
+  </p>
+  <p class="er-credit__legal">© 2026 Estudio Raíz · Marca en trámite ante el INPI (Acta N.º 4780707) · San Miguel de Tucumán, Argentina</p>
+</footer>
+<!-- ER-CREDIT:END -->
+</body>
+</html>
